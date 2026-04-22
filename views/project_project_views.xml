@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_project_form_inherit_session_controls" model="ir.ui.view">
+        <field name="name">project.project.form.session.controls</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button
+                    name="action_view_checkin_sessions"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-clock-o"
+                    string="Sessions">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="checkin_session_count" widget="statinfo"/>
+                        </span>
+                        <span class="o_stat_text">Sessions</span>
+                    </div>
+                </button>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_project_form_inherit_mobipine_project" model="ir.ui.view">
+        <field name="name">project.project.form.mobipine.project</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_open_share_project_wizard']" position="after">
+                <button
+                    name="action_check_in"
+                    type="object"
+                    string="Check In"
+                    class="oe_highlight"
+                    invisible="current_user_has_open_session"/>
+                <button
+                    name="action_check_out"
+                    type="object"
+                    string="Check Out"
+                    class="btn-secondary"
+                    invisible="not current_user_has_open_session"/>
+            </xpath>
+            <xpath expr="//sheet/group" position="inside">
+                <group string="StellarHR Scope">
+                    <field name="is_onsite"/>
+                    <field name="client_partner_id"/>
+                    <field name="sla_id"/>
+                    <field name="shift_type"/>
+                    <field name="shift_start"/>
+                    <field name="shift_end"/>
+                    <field name="current_user_has_open_session" readonly="1"/>
+                    <field name="current_user_open_session_id" readonly="1" invisible="not current_user_has_open_session"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
