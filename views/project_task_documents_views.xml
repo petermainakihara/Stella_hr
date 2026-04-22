@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_task_form_inherit_mobipine_documents_button" model="ir.ui.view">
+        <field name="name">project.task.form.mobipine.documents.button</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button
+                    name="action_view_task_documents"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-file-text-o"
+                    string="Documents"
+                    invisible="not documents_folder_id">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="document_count" widget="statinfo"/>
+                        </span>
+                        <span class="o_stat_text">Documents</span>
+                    </div>
+                </button>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_task_form_inherit_mobipine_documents_info" model="ir.ui.view">
+        <field name="name">project.task.form.mobipine.documents.info</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page name="stellar_hr_documents" string="StellarHR Documents" groups="mobipine_odoo_project_management.group_project_manager,base.group_system">
+                    <group>
+                        <field name="documents_folder_id" readonly="1"/>
+                        <field name="document_count" readonly="1"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
