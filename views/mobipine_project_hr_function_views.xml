@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mobipine_project_hr_function_tree" model="ir.ui.view">
+        <field name="name">mobipine.project.hr.function.tree</field>
+        <field name="model">mobipine_project.hr_function</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="sequence"/>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="sla_id"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mobipine_project_hr_function_form" model="ir.ui.view">
+        <field name="name">mobipine.project.hr.function.form</field>
+        <field name="model">mobipine_project.hr_function</field>
+        <field name="arch" type="xml">
+            <form string="HR Function">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="code" readonly="1"/>
+                            <field name="name"/>
+                            <field name="sla_id"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Task Templates">
+                            <field name="task_template_ids" context="{'default_hr_function_id': id}">
+                                <tree editable="bottom">
+                                    <field name="sequence"/>
+                                    <field name="code" readonly="1"/>
+                                    <field name="name"/>
+                                    <field name="recurrence_rule"/>
+                                    <field name="next_spawn_date"/>
+                                    <field name="active"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mobipine_project_hr_function" model="ir.actions.act_window">
+        <field name="name">HR Functions</field>
+        <field name="res_model">mobipine_project.hr_function</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>
