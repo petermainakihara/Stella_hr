@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Moved items from the deprecated StellarHR menu into Project's native Configuration menu -->
+    <menuitem id="menu_stellar_hr_sla"
+              name="SLA Setup"
+              parent="project.menu_project_config"
+              action="action_mobipine_project_sla"
+              sequence="100"
+              groups="mobipine_odoo_project_management.group_project_manager,base.group_system"/>
+
+    <menuitem id="menu_stellar_hr_hr_function"
+              name="HR Functions"
+              parent="project.menu_project_config"
+              action="action_mobipine_project_hr_function"
+              sequence="110"
+              groups="mobipine_odoo_project_management.group_project_manager,base.group_system"/>
+
+    <menuitem id="menu_stellar_hr_task_template"
+              name="Task Templates"
+              parent="project.menu_project_config"
+              action="action_mobipine_project_task_template"
+              sequence="120"
+              groups="mobipine_odoo_project_management.group_project_manager,base.group_system"/>
+
+    <menuitem id="menu_stellar_hr_checkin_sessions"
+              name="Check-in Sessions"
+              parent="project.menu_project_config"
+              action="action_project_checkin_session"
+              sequence="130"
+              groups="mobipine_odoo_project_management.group_project_manager,mobipine_odoo_project_management.group_hr_associate,base.group_system"/>
+</odoo>
