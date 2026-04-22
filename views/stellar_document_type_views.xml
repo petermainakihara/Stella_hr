@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_stellar_document_type_tree" model="ir.ui.view">
+        <field name="name">stellar.document.type.tree</field>
+        <field name="model">stellar.document.type</field>
+        <field name="arch" type="xml">
+            <list string="Document Types" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_stellar_document_type_form" model="ir.ui.view">
+        <field name="name">stellar.document.type.form</field>
+        <field name="model">stellar.document.type</field>
+        <field name="arch" type="xml">
+            <form string="Document Type">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="code"/>
+                        <field name="sequence"/>
+                        <field name="active"/>
+                    </group>
+                    <group>
+                        <field name="description"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_stellar_document_type" model="ir.actions.act_window">
+        <field name="name">Document Types</field>
+        <field name="res_model">stellar.document.type</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_stellar_document_type"
+              name="Document Types"
+              parent="project.menu_project_config"
+              action="action_stellar_document_type"
+              sequence="140"
+              groups="base.group_system"/>
+</odoo>
