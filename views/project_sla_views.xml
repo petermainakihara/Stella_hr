@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mobipine_project_sla_tree" model="ir.ui.view">
+        <field name="name">mobipine.project.sla.tree</field>
+        <field name="model">mobipine_project.sla</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="client_type"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mobipine_project_sla_form" model="ir.ui.view">
+        <field name="name">mobipine.project.sla.form</field>
+        <field name="model">mobipine_project.sla</field>
+        <field name="arch" type="xml">
+            <form string="SLA">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="code" readonly="1"/>
+                            <field name="name"/>
+                            <field name="client_type"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="partner_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="HR Functions">
+                            <field name="hr_function_ids" context="{'default_sla_id': id}">
+                                <list editable="bottom">
+                                    <field name="sequence"/>
+                                    <field name="code" readonly="1"/>
+                                    <field name="name"/>
+                                    <field name="active"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_mobipine_project_sla_search" model="ir.ui.view">
+        <field name="name">mobipine.project.sla.search</field>
+        <field name="model">mobipine_project.sla</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="client_type"/>
+                <filter name="filter_active" string="Active" domain="[('active', '=', True)]"/>
+                <separator/>
+                <filter name="group_client_type" string="Group by Client Type" context="{'group_by': 'client_type'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_mobipine_project_sla" model="ir.actions.act_window">
+        <field name="name">SLA Setup</field>
+        <field name="res_model">mobipine_project.sla</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_mobipine_project_sla_search"/>
+    </record>
+</odoo>
