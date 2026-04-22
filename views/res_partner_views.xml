@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_inherit_mobipine_project" model="ir.ui.view">
+        <field name="name">res.partner.form.mobipine.project</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/notebook" position="inside">
+                <page string="StellarHR" groups="mobipine_odoo_project_management.group_project_manager,base.group_system">
+                    <group>
+                        <field name="client_type"/>
+                        <field name="sla_ids" widget="many2many_tags"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
