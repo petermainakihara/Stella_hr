@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mobipine_project_task_template_tree" model="ir.ui.view">
+        <field name="name">mobipine.project.task.template.tree</field>
+        <field name="model">mobipine_project.task_template</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="sequence"/>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="hr_function_id"/>
+                <field name="recurrence_rule"/>
+                <field name="next_spawn_date"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mobipine_project_task_template_form" model="ir.ui.view">
+        <field name="name">mobipine.project.task.template.form</field>
+        <field name="model">mobipine_project.task_template</field>
+        <field name="arch" type="xml">
+            <form string="Task Template">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="code" readonly="1"/>
+                            <field name="name"/>
+                            <field name="hr_function_id"/>
+                            <field name="sla_id" readonly="1"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="recurrence_rule"/>
+                            <field name="next_spawn_date" required="recurrence_rule != 'none'"/>
+                            <field name="required_attachment_def" placeholder="Optional attachment checklist definition (JSON/text)"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="description" widget="html"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mobipine_project_task_template" model="ir.actions.act_window">
+        <field name="name">Task Templates</field>
+        <field name="res_model">mobipine_project.task_template</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>
