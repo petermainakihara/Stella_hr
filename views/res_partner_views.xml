@@ -10,6 +10,7 @@
                     <group>
                         <field name="client_type"/>
                         <field name="sla_ids" widget="many2many_tags"/>
+                        <field name="attendance_radius_km"/>
                     </group>
                 </page>
             </xpath>

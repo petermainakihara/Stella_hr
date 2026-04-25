@@ -1,42 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_task_list_inherit_session_controls" model="ir.ui.view">
-        <field name="name">project.task.list.session.controls</field>
-        <field name="model">project.task</field>
-        <field name="inherit_id" ref="project.view_task_tree2"/>
-        <field name="arch" type="xml">
-            <xpath expr="//list" position="inside">
-                <header>
-                    <button name="action_check_in" type="object" string="Check In" class="btn-primary"/>
-                    <button name="action_check_out" type="object" string="Check Out" class="btn-secondary"/>
-                </header>
-            </xpath>
-        </field>
-    </record>
-
     <record id="view_task_form_inherit_mobipine_project" model="ir.ui.view">
         <field name="name">project.task.form.mobipine.project</field>
         <field name="model">project.task</field>
         <field name="inherit_id" ref="project.view_task_form2"/>
         <field name="arch" type="xml">
-            <xpath expr="//sheet" position="inside">
-                <group string="Session" col="4">
-                    <field name="current_user_has_open_session" readonly="1"/>
-                    <field name="current_user_open_session_id" readonly="1" invisible="not current_user_has_open_session"/>
-                    <button
-                        name="action_check_in"
-                        type="object"
-                        string="Check In"
-                        class="btn-primary"
-                        invisible="current_user_has_open_session"/>
-                    <button
-                        name="action_check_out"
-                        type="object"
-                        string="Check Out"
-                        class="btn-secondary"
-                        invisible="not current_user_has_open_session"/>
-                </group>
-            </xpath>
             <xpath expr="//notebook" position="inside">
                 <page name="stellar_hr_foundation" string="StellarHR Foundation" groups="mobipine_odoo_project_management.group_project_manager,base.group_system">
                     <group>

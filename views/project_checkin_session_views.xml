@@ -6,6 +6,7 @@
         <field name="arch" type="xml">
             <list>
                 <field name="project_id"/>
+                <field name="partner_id"/>
                 <field name="user_id"/>
                 <field name="state"/>
                 <field name="check_in_time"/>
@@ -23,7 +24,10 @@
                 <sheet>
                     <group>
                         <group>
+                            <field name="attendance_id" readonly="1"/>
+                            <field name="employee_id" readonly="1"/>
                             <field name="project_id"/>
+                            <field name="partner_id"/>
                             <field name="user_id"/>
                             <field name="state"/>
                         </group>
@@ -34,8 +38,15 @@
                         </group>
                     </group>
                     <group>
+                        <field name="notes"/>
                         <field name="geo_lat"/>
                         <field name="geo_lng"/>
+                        <field name="check_in_geo_lat"/>
+                        <field name="check_in_geo_lng"/>
+                        <field name="check_in_radius_km"/>
+                        <field name="check_in_distance_km"/>
+                        <field name="check_out_geo_lat"/>
+                        <field name="check_out_geo_lng"/>
                     </group>
                 </sheet>
             </form>

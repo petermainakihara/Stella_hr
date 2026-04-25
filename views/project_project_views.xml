@@ -28,20 +28,6 @@
         <field name="model">project.project</field>
         <field name="inherit_id" ref="project.edit_project"/>
         <field name="arch" type="xml">
-            <xpath expr="//button[@name='action_open_share_project_wizard']" position="after">
-                <button
-                    name="action_check_in"
-                    type="object"
-                    string="Check In"
-                    class="oe_highlight"
-                    invisible="current_user_has_open_session"/>
-                <button
-                    name="action_check_out"
-                    type="object"
-                    string="Check Out"
-                    class="btn-secondary"
-                    invisible="not current_user_has_open_session"/>
-            </xpath>
             <xpath expr="//sheet/group" position="inside">
                 <group string="StellarHR Scope">
                     <field name="is_onsite"/>
@@ -53,6 +39,18 @@
                     <field name="current_user_has_open_session" readonly="1"/>
                     <field name="current_user_open_session_id" readonly="1" invisible="not current_user_has_open_session"/>
                 </group>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="SLA Functions" groups="mobipine_odoo_project_management.group_project_manager,base.group_system">
+                    <field name="sla_function_ids" readonly="1">
+                        <list>
+                            <field name="sequence"/>
+                            <field name="code"/>
+                            <field name="name"/>
+                            <field name="task_count"/>
+                        </list>
+                    </field>
+                </page>
             </xpath>
         </field>
     </record>
