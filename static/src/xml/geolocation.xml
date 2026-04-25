@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="mobipine_odoo_project_management.StellarGeoCaptureField" owl="1">
+        <span t-if="state.status == 'capturing'" class="text-muted">Capturing current location...</span>
+        <span t-elif="state.status == 'captured'" class="text-success">Location captured.</span>
+        <span t-elif="state.status == 'denied'" class="text-danger">Location access denied.</span>
+        <span t-elif="state.status == 'unsupported'" class="text-warning">Location not supported.</span>
+    </t>
+</templates>

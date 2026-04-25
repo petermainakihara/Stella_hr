@@ -1,0 +1,83 @@
+/* StellarHR Session Gate & Components */
+
+.stellar-session-gate {
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+}
+
+.stellar-session-gate.no-session {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    color: #856404;
+}
+
+.stellar-session-gate.with-session {
+    background-color: #d4edda;
+    border: 1px solid #28a745;
+    color: #155724;
+}
+
+.stellar-session-gate .session-info {
+    font-size: 12px;
+    margin-top: 6px;
+}
+
+.stellar-checkin-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.stellar-checkin-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.stellar-checkin-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.stellar-geo-capture {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.stellar-geo-capture .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.stellar-geo-status {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 4px;
+}
+
+.stellar-geo-status.success {
+    color: #28a745;
+}
+
+.stellar-geo-status.error {
+    color: #dc3545;
+}
