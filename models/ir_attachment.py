@@ -19,7 +19,6 @@ class IrAttachment(models.Model):
             if task.exists():
                 if task.documents_folder_id:
                     return {
-                        "destination": str(task.documents_folder_id.id),
                         "display_name": task.documents_folder_id.display_name,
                     }
                 if task.project_id and task.project_id.documents_folder_id:

@@ -1,5 +1,5 @@
 from odoo import api, fields, models
-from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 
 class ProjectTask(models.Model):
@@ -49,15 +49,6 @@ class ProjectTask(models.Model):
     )
     cycle_date = fields.Date(string="Spawn Cycle Date", readonly=True, index=True, copy=False)
     spawned_by_cron = fields.Boolean(string="Spawned by Cron", readonly=True, copy=False)
-    current_user_open_session_id = fields.Many2one(
-        "mobipine_project.checkin_session",
-        compute="_compute_current_user_session",
-        string="My Open Session",
-    )
-    current_user_has_open_session = fields.Boolean(
-        compute="_compute_current_user_session",
-        string="Has Open Session",
-    )
     
     # Phase 2: Task Dependencies
     parent_task_ids = fields.Many2many(
@@ -141,23 +132,6 @@ class ProjectTask(models.Model):
                 ]
             )
 
-    @api.depends("project_id", "project_id.checkin_session_ids.state", "project_id.checkin_session_ids.user_id")
-    def _compute_current_user_session(self):
-        session_model = self.env["mobipine_project.checkin_session"]
-        uid = self.env.user.id
-        for task in self:
-            open_session = session_model.search(
-                [
-                    ("project_id", "=", task.project_id.id),
-                    ("user_id", "=", uid),
-                    ("state", "=", "open"),
-                ],
-                limit=1,
-                order="check_in_time desc",
-            ) if task.project_id else session_model.browse()
-            task.current_user_open_session_id = open_session
-            task.current_user_has_open_session = bool(open_session)
-
     @api.depends("parent_task_ids", "parent_task_ids.stage_id")
     def _compute_blocked_by_tasks(self):
         """Find incomplete dependencies."""
@@ -210,15 +184,12 @@ class ProjectTask(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        """Create tasks with session guard check."""
-        self._check_session_guard_for_create(vals_list)
         tasks = super().create(vals_list)
         tasks._create_missing_documents_folders()
         return tasks
 
     def write(self, vals):
-        """Session gate enforcement and soft-delete folder protection."""
-        self._check_session_guard()
+        """Soft-delete folder protection."""
         result = super().write(vals)
         # Auto-create missing folders if task had no folder
         self._create_missing_documents_folders()
@@ -231,44 +202,6 @@ class ProjectTask(models.Model):
         result = super().unlink()
         # Folders are preserved — do not cascade delete
         return result
-
-    def _check_session_guard_for_create(self, vals_list):
-        """Check session before allowing task creation (non-PM users)."""
-        if self.env.user.has_group("mobipine_odoo_project_management.group_project_manager"):
-            return  # PMs are exempt
-        for vals in vals_list:
-            if "project_id" in vals:
-                project = self.env["project.project"].browse(vals["project_id"])
-                session = self.env["mobipine_project.checkin_session"].search(
-                    [
-                        ("project_id", "=", project.id),
-                        ("user_id", "=", self.env.user.id),
-                        ("state", "=", "open"),
-                    ]
-                )
-                if not session:
-                    raise AccessError(
-                        f"You must check in to '{project.name}' before creating tasks."
-                    )
-
-    def _check_session_guard(self):
-        """Enforce session-based read-only gate (FR-SES-04)."""
-        if self.env.user.has_group("mobipine_odoo_project_management.group_project_manager"):
-            return  # PMs are exempt
-        
-        for task in self:
-            session = self.env["mobipine_project.checkin_session"].search(
-                [
-                    ("project_id", "=", task.project_id.id),
-                    ("user_id", "=", self.env.user.id),
-                    ("state", "=", "open"),
-                ]
-            )
-            if not session:
-                raise AccessError(
-                    f"No open session for project '{task.project_id.name}'. "
-                    "Please check in before updating tasks."
-                )
 
     def _get_parent_documents_folder(self):
         """Find parent folder in hierarchy."""
@@ -307,15 +240,22 @@ class ProjectTask(models.Model):
                 pass
 
     def action_check_in(self):
-        for task in self:
-            if task.project_id:
-                task.project_id.action_check_in()
-        return True
+        self.ensure_one()
+        if self.project_id:
+            return self.project_id.action_check_in()
+        employee = self.env.user.employee_id
+        if not employee:
+            raise UserError("You need an employee record to check in.")
+        return employee._stellar_get_attendance_checkin_action()
 
     def action_check_out(self):
-        for task in self:
-            if task.project_id:
-                task.project_id.action_check_out()
+        self.ensure_one()
+        if self.project_id:
+            return self.project_id.action_check_out()
+        employee = self.env.user.employee_id
+        if not employee:
+            raise UserError("You need an employee record to check out.")
+        employee._stellar_register_attendance_checkout()
         return True
 
     def action_view_task_documents(self):

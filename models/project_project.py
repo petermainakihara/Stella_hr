@@ -50,6 +50,11 @@ class ProjectProject(models.Model):
         compute="_compute_checkin_session_count",
         string="Session Count",
     )
+    sla_function_ids = fields.Many2many(
+        "mobipine_project.hr_function",
+        compute="_compute_sla_function_ids",
+        string="HR Functions",
+    )
 
     @api.onchange("client_partner_id")
     def _onchange_client_partner_id(self):
@@ -76,7 +81,6 @@ class ProjectProject(models.Model):
         for project in self:
             open_session = session_model.search(
                 [
-                    ("project_id", "=", project.id),
                     ("user_id", "=", user_id),
                     ("state", "=", "open"),
                 ],
@@ -90,6 +94,11 @@ class ProjectProject(models.Model):
     def _compute_checkin_session_count(self):
         for project in self:
             project.checkin_session_count = len(project.checkin_session_ids)
+
+    @api.depends("sla_id", "sla_id.hr_function_ids")
+    def _compute_sla_function_ids(self):
+        for project in self:
+            project.sla_function_ids = project.sla_id.hr_function_ids if project.sla_id else False
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -150,44 +159,20 @@ class ProjectProject(models.Model):
 
     def action_check_in(self):
         self.ensure_one()
-        session_model = self.env["mobipine_project.checkin_session"]
-        existing = session_model.search(
-            [
-                ("user_id", "=", self.env.user.id),
-                ("state", "=", "open"),
-            ],
-            limit=1,
+        employee = self.env.user.employee_id
+        if not employee:
+            raise UserError("You need an employee record to check in.")
+        return employee._stellar_get_attendance_checkin_action(
+            project_id=self.id,
+            partner_id=self.client_partner_id.id or self.partner_id.id,
         )
-        if existing:
-            raise UserError(
-                "You already have an open check-in session on project '%s'. Check out first."
-                % existing.project_id.display_name
-            )
-
-        session_model.create(
-            {
-                "project_id": self.id,
-                "user_id": self.env.user.id,
-                "state": "open",
-                "check_in_time": fields.Datetime.now(),
-            }
-        )
-        return True
 
     def action_check_out(self):
         self.ensure_one()
-        session = self.env["mobipine_project.checkin_session"].search(
-            [
-                ("project_id", "=", self.id),
-                ("user_id", "=", self.env.user.id),
-                ("state", "=", "open"),
-            ],
-            limit=1,
-            order="check_in_time desc",
-        )
-        if not session:
-            raise UserError("No open check-in session was found for your user on this project.")
-        session.action_close_session()
+        employee = self.env.user.employee_id
+        if not employee:
+            raise UserError("You need an employee record to check out.")
+        employee._stellar_register_attendance_checkout()
         return True
 
     def action_view_checkin_sessions(self):

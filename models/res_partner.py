@@ -18,3 +18,8 @@ class ResPartner(models.Model):
         string="SLAs",
         groups="mobipine_odoo_project_management.group_project_manager,base.group_system",
     )
+    attendance_radius_km = fields.Float(
+        string="Attendance Radius (km)",
+        default=30.0,
+        help="Allowed distance in kilometers for on-premise check-in.",
+    )

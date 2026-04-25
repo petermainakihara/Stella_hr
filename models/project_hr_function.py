@@ -17,6 +17,7 @@ class ProjectHRFunction(models.Model):
         "hr_function_id",
         string="Task Templates",
     )
+    task_count = fields.Integer(compute="_compute_task_count", string="Tasks")
 
     _sql_constraints = [
         (
@@ -34,3 +35,18 @@ class ProjectHRFunction(models.Model):
             if vals.get("code", "New") == "New":
                 vals["code"] = sequence.next_by_code("mobipine_project.hr_function") or "New"
         return super().create(vals_list)
+
+    def _compute_task_count(self):
+        task_model = self.env["project.task"].sudo()
+        for record in self:
+            record.task_count = task_model.search_count([("hr_function_id", "=", record.id)])
+
+    def action_view_tasks(self):
+        self.ensure_one()
+        action = self.env["ir.actions.actions"]._for_xml_id("project.action_view_task")
+        action["domain"] = [("hr_function_id", "=", self.id)]
+        action["context"] = {
+            "default_hr_function_id": self.id,
+            "search_default_hr_function_id": self.id,
+        }
+        return action
