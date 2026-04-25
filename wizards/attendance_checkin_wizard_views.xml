@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_attendance_checkin_wizard_form" model="ir.ui.view">
+        <field name="name">mobipine.project.attendance.checkin.wizard.form</field>
+        <field name="model">mobipine_project.attendance_checkin_wizard</field>
+        <field name="arch" type="xml">
+            <form string="Attendance Check-in">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="employee_id"/>
+                            <field name="project_id"/>
+                            <field name="partner_id"/>
+                            <field name="notes" placeholder="Add notes before check-in..."/>
+                        </group>
+                        <group>
+                            <field name="geo_lat" widget="stellar_geo_capture"/>
+                            <field name="geo_lng"/>
+                            <field name="client_latitude" readonly="1"/>
+                            <field name="client_longitude" readonly="1"/>
+                            <field name="client_radius_km" readonly="1"/>
+                            <field name="distance_km" readonly="1"/>
+                            <field name="within_radius" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm_check_in" type="object" string="Check In" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_attendance_checkin_wizard" model="ir.actions.act_window">
+        <field name="name">Attendance Check-in</field>
+        <field name="res_model">mobipine_project.attendance_checkin_wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
