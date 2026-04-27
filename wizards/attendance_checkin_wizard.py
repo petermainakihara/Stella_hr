@@ -25,7 +25,17 @@ class AttendanceCheckinWizard(models.TransientModel):
     @api.model
     def default_get(self, fields_list):
         res = super().default_get(fields_list)
-        employee = self.env.user.employee_id
+        employee = self.env["hr.employee"].sudo().search(
+            [("user_id", "=", self.env.user.id)],
+            limit=1,
+            order="id desc",
+        )
+        if not employee:
+            user = self.env.user
+            employee = getattr(user, "employee", False) or getattr(user, "employee_id", False)
+            if not employee:
+                employees = getattr(user, "employee_ids", False)
+                employee = employees[:1] if getattr(employees, "_name", None) == "hr.employee" and employees else False
         if employee and not res.get("employee_id"):
             res["employee_id"] = employee.id
         if self.env.context.get("default_project_id") and not res.get("project_id"):
