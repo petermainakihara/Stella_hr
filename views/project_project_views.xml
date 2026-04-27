@@ -40,14 +40,21 @@
                     <field name="current_user_open_session_id" readonly="1" invisible="not current_user_has_open_session"/>
                 </group>
             </xpath>
-            <xpath expr="//notebook" position="inside">
+            <xpath expr="//notebook/page[1]" position="before">
                 <page string="SLA Functions" groups="mobipine_odoo_project_management.group_project_manager,base.group_system">
-                    <field name="sla_function_ids" readonly="1">
+                    <field name="sla_function_ids" readonly="1" context="{'project_id': id}">
                         <list>
                             <field name="sequence"/>
                             <field name="code"/>
                             <field name="name"/>
-                            <field name="task_count"/>
+                            <field name="project_task_count" string="Tasks"/>
+                            <button
+                                name="action_view_tasks_in_project"
+                                type="object"
+                                icon="fa-tasks"
+                                string="View Tasks"
+                                class="btn-link"
+                                invisible="project_task_count == 0"/>
                         </list>
                     </field>
                 </page>
