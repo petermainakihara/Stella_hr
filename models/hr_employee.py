@@ -5,6 +5,29 @@ from odoo.exceptions import UserError
 class HrEmployee(models.Model):
     _inherit = "hr.employee"
 
+    def _stellar_get_self_employee(self):
+        self.ensure_one()
+        if self.exists():
+            return self
+        employee = self.env["hr.employee"].sudo().search(
+            [("user_id", "=", self.env.user.id)],
+            limit=1,
+            order="id desc",
+        )
+        if employee:
+            return employee
+        user = self.env.user
+        fallback_employee = getattr(user, "employee", False)
+        if getattr(fallback_employee, "_name", None) == "hr.employee" and fallback_employee:
+            return fallback_employee
+        fallback_employee = getattr(user, "employee_id", False)
+        if getattr(fallback_employee, "_name", None) == "hr.employee" and fallback_employee:
+            return fallback_employee
+        fallback_employees = getattr(user, "employee_ids", False)
+        if getattr(fallback_employees, "_name", None) == "hr.employee" and fallback_employees:
+            return fallback_employees[:1]
+        return self.env["hr.employee"]
+
     def _stellar_get_open_attendance(self):
         self.ensure_one()
         return self.env["hr.attendance"].search(
@@ -65,19 +88,25 @@ class HrEmployee(models.Model):
 
     def _stellar_register_attendance_checkout(self):
         self.ensure_one()
-        attendance = self._stellar_get_open_attendance()
-        if not attendance:
+        attendances = self.env["hr.attendance"].search(
+            [
+                ("employee_id", "=", self.id),
+                ("check_out", "=", False),
+            ],
+            order="check_in desc, id desc",
+        )
+        if not attendances:
             raise UserError("No open attendance was found for this employee.")
 
         checkout_time = fields.Datetime.now()
-        attendance.write({"check_out": checkout_time})
-        session = self.env["mobipine_project.checkin_session"].search(
-            [("attendance_id", "=", attendance.id)],
-            limit=1,
+        attendances.write({"check_out": checkout_time})
+        sessions = self.env["mobipine_project.checkin_session"].search(
+            [("attendance_id", "in", attendances.ids)],
+            order="check_in_time desc, id desc",
         )
-        if session:
-            session.action_close_session(check_out_time=checkout_time)
-        return attendance, session
+        if sessions:
+            sessions.action_close_session(check_out_time=checkout_time)
+        return attendances[:1], sessions
 
     def attendance_action_change(self):
         self.ensure_one()
