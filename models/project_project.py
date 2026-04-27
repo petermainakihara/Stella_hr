@@ -5,6 +5,24 @@ from odoo.exceptions import UserError, ValidationError
 class ProjectProject(models.Model):
     _inherit = "project.project"
 
+    def _stellar_get_user_employee(self):
+        employee = self.env["hr.employee"].sudo().search(
+            [("user_id", "=", self.env.user.id)],
+            limit=1,
+            order="id desc",
+        )
+        if employee:
+            return employee
+        user = self.env.user
+        employee = getattr(user, "employee", False)
+        if getattr(employee, "_name", None) == "hr.employee" and employee:
+            return employee
+        employee = getattr(user, "employee_id", False)
+        if getattr(employee, "_name", None) == "hr.employee" and employee:
+            return employee
+        employees = getattr(user, "employee_ids", False)
+        return employees[:1] if getattr(employees, "_name", None) == "hr.employee" and employees else False
+
     is_onsite = fields.Boolean(string="Onsite Project", default=False)
     client_partner_id = fields.Many2one(
         "res.partner",
@@ -159,7 +177,7 @@ class ProjectProject(models.Model):
 
     def action_check_in(self):
         self.ensure_one()
-        employee = self.env.user.employee_id
+        employee = self._stellar_get_user_employee()
         if not employee:
             raise UserError("You need an employee record to check in.")
         return employee._stellar_get_attendance_checkin_action(
@@ -169,7 +187,7 @@ class ProjectProject(models.Model):
 
     def action_check_out(self):
         self.ensure_one()
-        employee = self.env.user.employee_id
+        employee = self._stellar_get_user_employee()
         if not employee:
             raise UserError("You need an employee record to check out.")
         employee._stellar_register_attendance_checkout()
