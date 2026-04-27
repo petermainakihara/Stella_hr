@@ -18,6 +18,11 @@ class ProjectHRFunction(models.Model):
         string="Task Templates",
     )
     task_count = fields.Integer(compute="_compute_task_count", string="Tasks")
+    project_task_count = fields.Integer(
+        compute="_compute_project_task_count",
+        string="Tasks (Project)",
+        help="Number of tasks for this HR function in the currently viewed project.",
+    )
 
     _sql_constraints = [
         (
@@ -41,6 +46,22 @@ class ProjectHRFunction(models.Model):
         for record in self:
             record.task_count = task_model.search_count([("hr_function_id", "=", record.id)])
 
+    @api.depends_context("project_id")
+    def _compute_project_task_count(self):
+        """Count tasks for this HR function scoped to the project in context.
+
+        When rendered inside the project form (context has 'project_id'), only
+        tasks belonging to that project are counted.  Falls back to the global
+        count when no project context is present.
+        """
+        task_model = self.env["project.task"].sudo()
+        project_id = self.env.context.get("project_id")
+        for record in self:
+            domain = [("hr_function_id", "=", record.id)]
+            if project_id:
+                domain.append(("project_id", "=", project_id))
+            record.project_task_count = task_model.search_count(domain)
+
     def action_view_tasks(self):
         self.ensure_one()
         action = self.env["ir.actions.actions"]._for_xml_id("project.action_view_task")
@@ -49,4 +70,19 @@ class ProjectHRFunction(models.Model):
             "default_hr_function_id": self.id,
             "search_default_hr_function_id": self.id,
         }
+        return action
+
+    def action_view_tasks_in_project(self):
+        """Open tasks for this HR function filtered to the project in context."""
+        self.ensure_one()
+        project_id = self.env.context.get("project_id")
+        action = self.env["ir.actions.actions"]._for_xml_id("project.action_view_task")
+        action["domain"] = [("hr_function_id", "=", self.id)]
+        action["context"] = {
+            "default_hr_function_id": self.id,
+        }
+        if project_id:
+            action["domain"].append(("project_id", "=", project_id))
+            action["context"]["default_project_id"] = project_id
+            action["context"]["search_default_project_id"] = project_id
         return action
