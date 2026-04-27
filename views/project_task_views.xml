@@ -1,20 +1,145 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_task_form_inherit_mobipine_project" model="ir.ui.view">
-        <field name="name">project.task.form.mobipine.project</field>
-        <field name="model">project.task</field>
-        <field name="inherit_id" ref="project.view_task_form2"/>
-        <field name="arch" type="xml">
-            <xpath expr="//notebook" position="inside">
-                <page name="stellar_hr_foundation" string="StellarHR Foundation" groups="mobipine_odoo_project_management.group_project_manager,base.group_system">
-                    <group>
-                        <field name="spawned_by_cron"/>
-                        <field name="task_template_id"/>
-                        <field name="hr_function_id"/>
-                        <field name="cycle_date"/>
-                    </group>
-                </page>
-            </xpath>
-        </field>
-    </record>
+	<record id="view_task_form_inherit_stellar_feedback" model="ir.ui.view">
+		<field name="name">project.task.form.stellar.feedback</field>
+		<field name="model">project.task</field>
+		<field name="inherit_id" ref="project.view_task_form2"/>
+		<field name="arch" type="xml">
+			<xpath expr="//notebook" position="inside">
+				<page name="stellar_feedback" string="Feedback" groups="mobipine_odoo_project_management.group_hr_associate,mobipine_odoo_project_management.group_project_manager,base.group_system">
+					<group>
+						<field name="feedback_count" readonly="1"/>
+					</group>
+					<field name="feedback_ids" context="{'default_task_id': id}">
+						<list editable="bottom" create="1" delete="0">
+							<field name="author_id" readonly="1"/>
+							<field name="comment"/>
+							<field name="create_date" readonly="1"/>
+						</list>
+						<form>
+							<group>
+								<field name="author_id" readonly="1"/>
+								<field name="comment"/>
+								<field name="create_date" readonly="1"/>
+							</group>
+						</form>
+					</field>
+				</page>
+			</xpath>
+		</field>
+	</record>
+
+	<record id="view_task_form_inherit_stellar_progress" model="ir.ui.view">
+		<field name="name">project.task.form.stellar.progress</field>
+		<field name="model">project.task</field>
+		<field name="inherit_id" ref="project.view_task_form2"/>
+		<field name="arch" type="xml">
+			<xpath expr="//notebook" position="inside">
+				<page name="stellar_progress" string="Progress" groups="mobipine_odoo_project_management.group_hr_associate,mobipine_odoo_project_management.group_project_manager,base.group_system">
+					<group>
+						<field name="assignee_progress_pct" readonly="1"/>
+					</group>
+					<field name="progress_ids" context="{'default_task_id': id}">
+						<list editable="bottom" delete="0">
+							<field name="user_id" readonly="1"/>
+							<field name="progress_pct"/>
+							<field name="notes"/>
+							<field name="create_date" readonly="1"/>
+						</list>
+						<form>
+							<group>
+								<field name="user_id" readonly="1"/>
+								<field name="progress_pct"/>
+								<field name="notes"/>
+								<field name="create_date" readonly="1"/>
+							</group>
+						</form>
+					</field>
+				</page>
+			</xpath>
+		</field>
+	</record>
+
+	<record id="view_task_form_inherit_stellar_requirements" model="ir.ui.view">
+		<field name="name">project.task.form.stellar.requirements</field>
+		<field name="model">project.task</field>
+		<field name="inherit_id" ref="project.view_task_form2"/>
+		<field name="arch" type="xml">
+			<xpath expr="//notebook" position="inside">
+				<page name="stellar_requirements" string="Requirements" groups="mobipine_odoo_project_management.group_hr_associate,mobipine_odoo_project_management.group_project_manager,base.group_system">
+					<group string="Closure Readiness">
+						<field name="can_move_to_done" readonly="1"/>
+						<field name="attachment_req_count" readonly="1"/>
+						<field name="attachment_req_fulfilled" readonly="1"/>
+					</group>
+
+					<group string="Required Attachments" groups="mobipine_odoo_project_management.group_project_manager,base.group_system">
+						<field name="attachment_req_ids" context="{'default_task_id': id}">
+							<list editable="bottom">
+								<field name="sequence"/>
+								<field name="label"/>
+								<field name="expected_doc_type_id"/>
+								<field name="attachment_id"/>
+								<field name="is_fulfilled" readonly="1"/>
+							</list>
+						</field>
+					</group>
+
+					<group string="Required Attachments" groups="mobipine_odoo_project_management.group_hr_associate">
+						<field name="attachment_req_ids" context="{'default_task_id': id}">
+							<list editable="bottom" create="0" delete="0">
+								<field name="sequence" readonly="1"/>
+								<field name="label" readonly="1"/>
+								<field name="expected_doc_type_id" readonly="1"/>
+								<field name="attachment_id"/>
+								<field name="is_fulfilled" readonly="1"/>
+							</list>
+						</field>
+					</group>
+				</page>
+			</xpath>
+		</field>
+	</record>
+
+	<record id="view_task_form_inherit_stellar_geolocation" model="ir.ui.view">
+		<field name="name">project.task.form.stellar.geolocation</field>
+		<field name="model">project.task</field>
+		<field name="inherit_id" ref="project.view_task_form2"/>
+		<field name="arch" type="xml">
+			<xpath expr="//notebook" position="inside">
+				<page name="stellar_geolocation" string="Geolocation" groups="mobipine_odoo_project_management.group_hr_associate,mobipine_odoo_project_management.group_project_manager,base.group_system">
+					<group string="Off-Site Execution Location">
+						<group>
+							<field name="geo_lat" widget="stellar_geo_capture"/>
+							<field name="geo_lng" readonly="1"/>
+						</group>
+						<div class="text-muted o_form_hint" role="note">
+							<p>For off-site project tasks, capture your current location before closing the task.</p>
+							<p>Click "Capture current location" to automatically populate latitude and longitude.</p>
+						</div>
+					</group>
+				</page>
+			</xpath>
+		</field>
+	</record>
+
+	<record id="view_task_form_inherit_stellar_assignee" model="ir.ui.view">
+		<field name="name">project.task.form.stellar.assignee</field>
+		<field name="model">project.task</field>
+		<field name="inherit_id" ref="project.view_task_form2"/>
+		<field name="arch" type="xml">
+			<!-- PM-only task assignment enforcement: make user_ids editable only for PMs -->
+			<!-- PMs and system admins see editable field -->
+			<xpath expr="//field[@name='user_ids']" position="attributes">
+				<attribute name="groups">mobipine_odoo_project_management.group_project_manager,base.group_system</attribute>
+			</xpath>
+			<!-- Associates see readonly version with help text -->
+			<xpath expr="//field[@name='user_ids']/.." position="after">
+				<field name="user_ids" readonly="1" widget="many2many_avatar_user" groups="mobipine_odoo_project_management.group_hr_associate" options="{'no_open': True}"/>
+				<div class="text-muted o_form_hint" role="note" groups="mobipine_odoo_project_management.group_hr_associate">
+					<p><strong>Task assignments can only be changed by Project Managers.</strong> Contact your PM to request assignment changes.</p>
+				</div>
+			</xpath>
+		</field>
+	</record>
 </odoo>
