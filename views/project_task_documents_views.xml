@@ -17,7 +17,6 @@
                         <span class="o_stat_value">
                             <field name="document_count" widget="statinfo"/>
                         </span>
-                        <span class="o_stat_text">Documents</span>
                     </div>
                 </button>
             </xpath>
@@ -30,9 +29,17 @@
         <field name="inherit_id" ref="project.view_task_form2"/>
         <field name="arch" type="xml">
             <xpath expr="//notebook" position="inside">
-                <page name="stellar_hr_documents" string="StellarHR Documents" groups="mobipine_odoo_project_management.group_project_manager,base.group_system">
-                    <group>
+                <page name="stellar_hr_documents" string="HR Documents" groups="mobipine_odoo_project_management.group_project_manager,base.group_system">
+                    <group string="Folder">
                         <field name="documents_folder_id" readonly="1"/>
+                        <button
+                            name="action_view_documents_folder"
+                            type="object"
+                            class="btn-secondary"
+                            string="Open Folder Workspace"
+                            invisible="not documents_folder_id"/>
+                    </group>
+                    <group string="Summary">
                         <field name="document_count" readonly="1"/>
                     </group>
                 </page>
