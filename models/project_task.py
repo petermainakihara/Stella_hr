@@ -5,6 +5,59 @@ from odoo.exceptions import UserError, ValidationError
 class ProjectTask(models.Model):
     _inherit = "project.task"
 
+    def _stellar_validate_close_requirements(self):
+        for task in self:
+            blocked_tasks = task.blocked_by_tasks
+            missing_slots = task.attachment_req_ids.filtered(lambda req: not req.is_fulfilled)
+            has_feedback = bool(task.feedback_ids)
+
+            issues = []
+            if blocked_tasks:
+                blocked_names = blocked_tasks.mapped("display_name")
+                preview = ", ".join(blocked_names[:3])
+                if len(blocked_names) > 3:
+                    preview = "%s, ..." % preview
+                issues.append("Incomplete dependencies: %s" % preview)
+
+            if missing_slots:
+                slot_labels = missing_slots.mapped("label")
+                preview = ", ".join(slot_labels[:5])
+                if len(slot_labels) > 5:
+                    preview = "%s, ..." % preview
+                issues.append("Missing required attachments: %s" % preview)
+
+            if not has_feedback:
+                issues.append("At least one task feedback entry is required.")
+
+            # For off-site projects, geolocation is required
+            if task.project_id and not task.project_id.is_onsite:
+                if not (task.geo_lat and task.geo_lng):
+                    issues.append("Geolocation (latitude, longitude) is required for off-site tasks.")
+
+            if issues:
+                raise ValidationError(
+                    "Task '%s' cannot be closed:\n- %s"
+                    % (task.display_name, "\n- ".join(issues))
+                )
+
+    def _stellar_get_user_employee(self):
+        employee = self.env["hr.employee"].sudo().search(
+            [("user_id", "=", self.env.user.id)],
+            limit=1,
+            order="id desc",
+        )
+        if employee:
+            return employee
+        user = self.env.user
+        employee = getattr(user, "employee", False)
+        if getattr(employee, "_name", None) == "hr.employee" and employee:
+            return employee
+        employee = getattr(user, "employee_id", False)
+        if getattr(employee, "_name", None) == "hr.employee" and employee:
+            return employee
+        employees = getattr(user, "employee_ids", False)
+        return employees[:1] if getattr(employees, "_name", None) == "hr.employee" and employees else False
+
     _SESSION_GUARDED_FIELDS = {
         "name",
         "description",
@@ -135,12 +188,9 @@ class ProjectTask(models.Model):
     @api.depends("parent_task_ids", "parent_task_ids.stage_id")
     def _compute_blocked_by_tasks(self):
         """Find incomplete dependencies."""
-        done_stage = self.env["project.stage"].search(
-            [("name", "=ilike", "Done")], limit=1
-        )
         for task in self:
             blocked = task.parent_task_ids.filtered(
-                lambda t: (not done_stage) or (t.stage_id != done_stage)
+                lambda t: not (t.stage_id and t.stage_id.fold)
             )
             task.blocked_by_tasks = blocked
 
@@ -185,11 +235,28 @@ class ProjectTask(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         tasks = super().create(vals_list)
+        closing_tasks = tasks.filtered(lambda task: task.stage_id and task.stage_id.fold)
+        if closing_tasks:
+            closing_tasks._stellar_validate_close_requirements()
         tasks._create_missing_documents_folders()
         return tasks
 
     def write(self, vals):
         """Soft-delete folder protection."""
+        # PM-only task assignment enforcement (FR-ASSIGN-01)
+        if "user_ids" in vals:
+            is_pm = self.user_has_groups("mobipine_odoo_project_management.group_project_manager")
+            if not is_pm:
+                raise ValidationError(
+                    "Only Project Managers can assign or reassign tasks. "
+                    "Please contact your project manager to update task assignments."
+                )
+
+        if "stage_id" in vals and vals.get("stage_id"):
+            target_stage = self.env["project.stage"].browse(vals["stage_id"]).exists()
+            if target_stage and target_stage.fold:
+                self._stellar_validate_close_requirements()
+
         result = super().write(vals)
         # Auto-create missing folders if task had no folder
         self._create_missing_documents_folders()
@@ -226,24 +293,28 @@ class ProjectTask(models.Model):
         return vals
 
     def _create_missing_documents_folders(self):
-        """Auto-create document folder for task/subtask if not exists (FR-DOC-02, FR-DOC-03)."""
-        documents_folder = self.env["documents.document"]
+        """Auto-create document folder for task/subtask if not exists (FR-DOC-02, FR-DOC-03).
+
+        Uses a savepoint per task so a folder-creation failure does not roll back
+        the surrounding transaction (e.g. the task record itself).
+        Hierarchy: Project folder → Task folder → Subtask folder.
+        """
         for task in self.filtered(lambda t: not t.documents_folder_id):
             try:
-                folder_vals = task._prepare_folder_values()
-                if folder_vals:
-                    folder = documents_folder.create(folder_vals)
-                    task.write({"documents_folder_id": folder.id})
-            except Exception as e:
-                # Graceful fallback if Documents module not ready
-                self.env.cr.rollback()
+                with self.env.cr.savepoint():
+                    folder_vals = task._prepare_folder_values()
+                    if folder_vals:
+                        folder = self.env["documents.document"].create(folder_vals)
+                        task.write({"documents_folder_id": folder.id})
+            except Exception:
+                # Best-effort: if Documents module is not ready, skip silently
                 pass
 
     def action_check_in(self):
         self.ensure_one()
         if self.project_id:
             return self.project_id.action_check_in()
-        employee = self.env.user.employee_id
+        employee = self._stellar_get_user_employee()
         if not employee:
             raise UserError("You need an employee record to check in.")
         return employee._stellar_get_attendance_checkin_action()
@@ -252,13 +323,25 @@ class ProjectTask(models.Model):
         self.ensure_one()
         if self.project_id:
             return self.project_id.action_check_out()
-        employee = self.env.user.employee_id
+        employee = self._stellar_get_user_employee()
         if not employee:
             raise UserError("You need an employee record to check out.")
         employee._stellar_register_attendance_checkout()
         return True
 
     def action_view_task_documents(self):
+        self.ensure_one()
+        if not self.documents_folder_id:
+            raise UserError("No documents folder is linked to this task yet.")
+        action = self.env["ir.actions.actions"]._for_xml_id("documents.document_action")
+        action["domain"] = [("id", "child_of", self.documents_folder_id.id)]
+        action["context"] = {
+            "default_folder_id": self.documents_folder_id.id,
+            "searchpanel_default_folder_id": self.documents_folder_id.id,
+        }
+        return action
+
+    def action_view_documents_folder(self):
         self.ensure_one()
         if not self.documents_folder_id:
             raise UserError("No documents folder is linked to this task yet.")
