@@ -1,4 +1,5 @@
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 
 class StellarTaskProgress(models.Model):
@@ -36,8 +37,27 @@ class StellarTaskProgress(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        """Track creation timestamp."""
+        """Track creation timestamp and enforce author linkage."""
         for vals in vals_list:
+            vals["user_id"] = self.env.user.id
             if "create_date" not in vals:
                 vals["create_date"] = fields.Datetime.now()
         return super().create(vals_list)
+
+    def write(self, vals):
+        if "user_id" in vals:
+            raise UserError("Progress author cannot be changed after creation.")
+
+        if not self.env.user.has_group("base.group_system"):
+            unauthorized = self.filtered(lambda record: record.user_id.id != self.env.user.id)
+            if unauthorized:
+                raise UserError("You can only update progress records that you created.")
+
+        return super().write(vals)
+
+    def unlink(self):
+        if not self.env.user.has_group("base.group_system"):
+            unauthorized = self.filtered(lambda record: record.user_id.id != self.env.user.id)
+            if unauthorized:
+                raise UserError("You can only delete progress records that you created.")
+        return super().unlink()
