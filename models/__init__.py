@@ -12,4 +12,5 @@ from . import stellar_task_progress
 from . import stellar_attachment_req
 from . import stellar_document_type
 from . import hr_employee
+from . import hr_attendance
 from . import ir_ui_menu
