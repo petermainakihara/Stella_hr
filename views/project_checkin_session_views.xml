@@ -4,7 +4,7 @@
         <field name="name">project.checkin.session.tree</field>
         <field name="model">mobipine_project.checkin_session</field>
         <field name="arch" type="xml">
-            <list>
+            <list create="false">
                 <field name="project_id"/>
                 <field name="partner_id"/>
                 <field name="user_id"/>
