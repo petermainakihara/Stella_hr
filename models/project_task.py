@@ -245,7 +245,9 @@ class ProjectTask(models.Model):
         """Soft-delete folder protection."""
         # PM-only task assignment enforcement (FR-ASSIGN-01)
         if "user_ids" in vals:
-            is_pm = self.user_has_groups("mobipine_odoo_project_management.group_project_manager")
+            is_pm = self.env.user.has_group(
+                "mobipine_odoo_project_management.group_project_manager"
+            )
             if not is_pm:
                 raise ValidationError(
                     "Only Project Managers can assign or reassign tasks. "
