@@ -1,0 +1,4 @@
+- Incident: task save failed with AttributeError on `user_has_groups`.
+- Root cause: project.task model does not expose `user_has_groups` in this build.
+- Resolution: use `self.env.user.has_group` for PM-only assignment enforcement.
+- Follow-up: use env user API for permission checks in model methods.

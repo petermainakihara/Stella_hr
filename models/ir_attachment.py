@@ -11,28 +11,27 @@ class IrAttachment(models.Model):
     )
 
     def get_documents_operation_add_destination(self):
-        """Auto-move chatter attachments to task folder (FR-DOC-07)."""
+        """Auto‑move chatter attachments to task folder (FR‑DOC‑07).
+        Guarded for install mode to avoid heavy searches while the module is being loaded.
+        """
+        # Skip heavy logic during install/upgrade
+        if self.env.context.get('install_mode') or self.env.context.get('import_file'):
+            return {}
         self.ensure_one()
 
         if self.res_model == "project.task":
             task = self.env["project.task"].browse(self.res_id)
             if task.exists():
                 if task.documents_folder_id:
-                    return {
-                        "display_name": task.documents_folder_id.display_name,
-                    }
+                    return {"display_name": task.documents_folder_id.display_name}
                 if task.project_id and task.project_id.documents_folder_id:
-                    return {
-                        "destination": str(task.project_id.documents_folder_id.id),
-                        "display_name": task.project_id.documents_folder_id.display_name,
-                    }
+                    return {"destination": str(task.project_id.documents_folder_id.id),
+                            "display_name": task.project_id.documents_folder_id.display_name}
 
         if self.res_model == "project.project":
             project = self.env["project.project"].browse(self.res_id)
             if project.exists() and project.documents_folder_id:
-                return {
-                    "destination": str(project.documents_folder_id.id),
-                    "display_name": project.documents_folder_id.display_name,
-                }
+                return {"destination": str(project.documents_folder_id.id),
+                        "display_name": project.documents_folder_id.display_name}
 
         return super().get_documents_operation_add_destination()

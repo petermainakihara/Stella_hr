@@ -29,7 +29,8 @@
         <field name="inherit_id" ref="project.view_task_form2"/>
         <field name="arch" type="xml">
             <xpath expr="//notebook" position="inside">
-                <page name="stellar_hr_documents" string="HR Documents" groups="mobipine_odoo_project_management.group_project_manager,base.group_system">
+                <page name="stellar_hr_documents" string="HR Documents"
+                      groups="mobipine_odoo_project_management.group_project_manager,base.group_system">
                     <group string="Folder">
                         <field name="documents_folder_id" readonly="1"/>
                         <button
@@ -41,6 +42,17 @@
                     </group>
                     <group string="Summary">
                         <field name="document_count" readonly="1"/>
+                    </group>
+                    <group string="Upload Documents">
+                        <div class="o_form_hint text-muted mb-2">
+                            <p>Upload documents directly to this task's project folder in the Documents app.</p>
+                        </div>
+                        <button
+                            name="action_upload_hr_document"
+                            type="object"
+                            class="btn-primary"
+                            string="Upload Document"
+                            icon="fa-upload"/>
                     </group>
                 </page>
             </xpath>

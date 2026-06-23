@@ -39,6 +39,24 @@ class HrEmployee(models.Model):
             order="check_in desc, id desc",
         )
 
+    def _stellar_has_open_checkin_session(self):
+        """Whether this employee has an open, wizard-created check-in
+        session. This is the authoritative signal for the app-access gate
+        (controllers/action.py) — it deliberately does NOT just check for
+        an open hr.attendance record, because attendance can also be opened
+        via the native Attendances app or Kiosk Mode, which bypass the
+        partner/geofence validation in our custom check-in wizard."""
+        self.ensure_one()
+        return bool(
+            self.env["mobipine_project.checkin_session"].search(
+                [
+                    ("employee_id", "=", self.id),
+                    ("state", "=", "open"),
+                ],
+                limit=1,
+            )
+        )
+
     def _stellar_get_attendance_checkin_action(self, project_id=False, partner_id=False):
         self.ensure_one()
         action = self.env["ir.actions.actions"]._for_xml_id(

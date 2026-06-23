@@ -1,0 +1,4 @@
+- 2026-05-29: Fixed project.task write group check for task assignment.
+- Root cause: used missing `user_has_groups` on the model instead of env user API.
+- Fix: switched to `self.env.user.has_group` for PM enforcement.
+- Validation: update a task with assignees; write succeeds for PM and blocks non-PM.

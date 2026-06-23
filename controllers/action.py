@@ -1,27 +1,81 @@
+import logging
+
 from odoo import http
 from odoo.addons.web.controllers.action import Action as WebAction
 from odoo.exceptions import AccessError
 from odoo.http import request
 
+_logger = logging.getLogger(__name__)
+
+
+class StellarCheckinRequiredError(AccessError):
+    """Raised when a user without an open check-in session tries to load
+    a blocked action. Carries a distinct name so the frontend can detect
+    it reliably and show the check-in modal instead of a generic error."""
+
 
 class Action(WebAction):
+    def _stellar_get_employee(self):
+        employee = request.env["hr.employee"].sudo().search(
+            [("user_id", "=", request.env.user.id)],
+            limit=1,
+            order="id desc",
+        )
+        return employee or False
+
     def _stellar_has_open_attendance(self):
-        employee = request.env.user.employee_id or request.env.user.employee_ids[:1]
-        return bool(employee and employee._stellar_get_open_attendance())
+        employee = self._stellar_get_employee()
+        return bool(employee and employee._stellar_has_open_checkin_session())
+
+    def _stellar_is_settings_action(self, action, xmlid):
+        if xmlid and (
+            xmlid.startswith("base_setup.")
+            or xmlid.startswith("base.")
+            and "settings" in xmlid
+            or xmlid == "base.action_general_settings"
+        ):
+            return True
+        # Catch-all: Settings root action and its sub-actions live under the
+        # 'base_setup' / 'base' modules, but to be safe also check the action's
+        # binding model — res.config.settings actions are always Settings.
+        res_model = getattr(action, "res_model", False)
+        return res_model == "res.config.settings"
 
     def _stellar_action_is_allowed(self, action):
         if request.env.user.has_group("base.group_system"):
+            _logger.warning("STELLAR GATE: user=%s is admin, allowing", request.env.user.login)
             return True
+
         if self._stellar_has_open_attendance():
+            _logger.warning("STELLAR GATE: user=%s has open checkin session, allowing", request.env.user.login)
             return True
 
         xmlid = action.get_external_id().get(action.id)
+        res_model = getattr(action, "res_model", False)
+
+        # Always allow the attendance app itself and the check-in wizard,
+        # whether or not they resolve to an xmlid.
         if xmlid and xmlid.startswith("hr_attendance."):
+            _logger.warning("STELLAR GATE: xmlid=%s is hr_attendance, allowing", xmlid)
             return True
 
         if xmlid == "mobipine_odoo_project_management.action_attendance_checkin_wizard":
+            _logger.warning("STELLAR GATE: xmlid=%s is checkin wizard, allowing", xmlid)
             return True
 
+        if res_model == "hr.attendance":
+            _logger.warning("STELLAR GATE: res_model=hr.attendance, allowing")
+            return True
+
+        if self._stellar_is_settings_action(action, xmlid):
+            _logger.warning("STELLAR GATE: xmlid=%s is settings action, allowing", xmlid)
+            return True
+
+        # No more automatic "no xmlid = allow" escape hatch. Block by default.
+        _logger.warning(
+            "STELLAR GATE: xmlid=%s res_model=%s BLOCKED for user=%s",
+            xmlid, res_model, request.env.user.login,
+        )
         return False
 
     def _stellar_get_action_record(self, action_id):
@@ -37,7 +91,15 @@ class Action(WebAction):
 
     @http.route("/web/action/load", type="jsonrpc", auth="user", readonly=True)
     def load(self, action_id, context=None):
+        _logger.warning(
+            "STELLAR GATE: load() ENTERED with action_id=%s, user=%s",
+            action_id, request.env.user.login,
+        )
         action = self._stellar_get_action_record(action_id)
         if action and not self._stellar_action_is_allowed(action):
-            raise AccessError("You must check in before opening apps.")
+            _logger.warning(
+                "STELLAR GATE: RAISING StellarCheckinRequiredError for action_id=%s, user=%s",
+                action_id, request.env.user.login,
+            )
+            raise StellarCheckinRequiredError("STELLAR_CHECKIN_REQUIRED")
         return super().load(action_id, context=context)

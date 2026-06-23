@@ -1,5 +1,5 @@
 {
-    "name": "StellarHR Project Management",
+    "name": "HR Project Management",
     "summary": "SLA-driven project and recurring task foundation for HR consulting operations.",
     "description": """
         Foundation module for StellarHR custom project management workflow.
@@ -19,9 +19,8 @@
         "project",
         "hr",
         "hr_attendance",
-        "industry_fsm",
-        "documents",
-        "documents_project",
+        #"industry_fsm",
+        "enhanced_document_management",
     ],
     "data": [
         "security/stellar_hr_groups.xml",
@@ -43,12 +42,14 @@
         "wizards/attendance_checkin_wizard_views.xml",
     ],
     "external_dependencies": {},
-    "post_init_hook": "post_init_hook",
     "assets": {
         "web.assets_backend": [
             "mobipine_odoo_project_management/static/src/js/geolocation.js",
             "mobipine_odoo_project_management/static/src/xml/geolocation.xml",
             "mobipine_odoo_project_management/static/src/js/attendance_menu_patch.js",
+            "mobipine_odoo_project_management/static/src/js/session_gate.js",
+            "mobipine_odoo_project_management/static/src/js/session_gate_error_handler.js",
+            "mobipine_odoo_project_management/static/css/session_gate.css",
         ],
     },
     "installable": True,

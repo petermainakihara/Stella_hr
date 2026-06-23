@@ -23,5 +23,11 @@
             <field name="privilege_id" ref="mobipine_odoo_project_management.privilege_stellar_hr"/>
             <field name="implied_ids" eval="[(4, ref('project.group_project_user')), (4, ref('hr_attendance.group_hr_attendance_user'))]"/>
         </record>
+
+        <record id="group_stellar_settings_visibility" model="res.groups">
+            <field name="name">StellarHR Settings Visibility</field>
+            <field name="privilege_id" ref="mobipine_odoo_project_management.privilege_stellar_hr"/>
+            <field name="comment">Grants visibility of the Settings app icon without granting administrator rights.</field>
+        </record>
     </data>
 </odoo>

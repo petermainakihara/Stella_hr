@@ -29,7 +29,6 @@ class ProjectTask(models.Model):
             if not has_feedback:
                 issues.append("At least one task feedback entry is required.")
 
-            # For off-site projects, geolocation is required
             if task.project_id and not task.project_id.is_onsite:
                 if not (task.geo_lat and task.geo_lng):
                     issues.append("Geolocation (latitude, longitude) is required for off-site tasks.")
@@ -74,13 +73,13 @@ class ProjectTask(models.Model):
     }
 
     documents_folder_id = fields.Many2one(
-        "documents.document",
+        "document.workspace",
         string="Documents Folder",
         copy=False,
         index="btree_not_null",
-        domain="[('type', '=', 'folder'), ('shortcut_document_id', '=', False)]",
+        domain="[]",
         readonly=True,
-        help="Task-specific folder in Documents. Subtasks are nested under their parent task folder.",
+        help="Task-specific workspace folder in Documents. Subtasks are nested under their parent task folder.",
     )
     document_count = fields.Integer(
         string="Documents",
@@ -102,8 +101,7 @@ class ProjectTask(models.Model):
     )
     cycle_date = fields.Date(string="Spawn Cycle Date", readonly=True, index=True, copy=False)
     spawned_by_cron = fields.Boolean(string="Spawned by Cron", readonly=True, copy=False)
-    
-    # Phase 2: Task Dependencies
+
     parent_task_ids = fields.Many2many(
         "project.task",
         "project_task_dependency_rel",
@@ -133,8 +131,7 @@ class ProjectTask(models.Model):
     )
     geo_lat = fields.Float(digits=(16, 8), string="Latitude")
     geo_lng = fields.Float(digits=(16, 8), string="Longitude")
-    
-    # Phase 2: Feedback & Progress
+
     feedback_ids = fields.One2many(
         "stellar.task.feedback",
         "task_id",
@@ -152,8 +149,7 @@ class ProjectTask(models.Model):
         compute="_compute_assignee_progress",
         string="Progress %",
     )
-    
-    # Phase 2: Attachment Requirements
+
     attachment_req_ids = fields.One2many(
         "stellar.attachment.req",
         "task_id",
@@ -173,21 +169,19 @@ class ProjectTask(models.Model):
 
     @api.depends("documents_folder_id")
     def _compute_documents(self):
-        document_model = self.env["documents.document"].sudo()
+        document_model = self.env["document.file"].sudo()
         for task in self:
             if not task.documents_folder_id:
                 task.document_count = 0
                 continue
             task.document_count = document_model.search_count(
                 [
-                    ("type", "in", ("binary", "url")),
-                    ("id", "child_of", task.documents_folder_id.id),
+                    ("workspace_id", "=", task.documents_folder_id.id),
                 ]
             )
 
     @api.depends("parent_task_ids", "parent_task_ids.stage_id")
     def _compute_blocked_by_tasks(self):
-        """Find incomplete dependencies."""
         for task in self:
             blocked = task.parent_task_ids.filtered(
                 lambda t: not (t.stage_id and t.stage_id.fold)
@@ -196,15 +190,11 @@ class ProjectTask(models.Model):
 
     @api.depends("blocked_by_tasks", "attachment_req_ids.is_fulfilled", "feedback_ids")
     def _compute_can_move_to_done(self):
-        """Check if task can be marked done."""
         for task in self:
-            # All dependencies must be complete
             deps_met = len(task.blocked_by_tasks) == 0
-            # All required attachments must be fulfilled
             attachments_ok = not task.attachment_req_ids or all(
                 req.is_fulfilled for req in task.attachment_req_ids
             )
-            # At least one feedback record from an assignee
             feedback_ok = len(task.feedback_ids) > 0
             task.can_move_to_done = deps_met and attachments_ok and feedback_ok
 
@@ -215,7 +205,6 @@ class ProjectTask(models.Model):
 
     @api.depends("progress_ids")
     def _compute_assignee_progress(self):
-        """Get latest progress percent."""
         for task in self:
             latest = task.progress_ids.sorted(key=lambda p: p.create_date, reverse=True)
             task.assignee_progress_pct = latest[0].progress_pct if latest else 0
@@ -242,8 +231,6 @@ class ProjectTask(models.Model):
         return tasks
 
     def write(self, vals):
-        """Soft-delete folder protection."""
-        # PM-only task assignment enforcement (FR-ASSIGN-01)
         if "user_ids" in vals:
             is_pm = self.env.user.has_group(
                 "mobipine_odoo_project_management.group_project_manager"
@@ -260,56 +247,55 @@ class ProjectTask(models.Model):
                 self._stellar_validate_close_requirements()
 
         result = super().write(vals)
-        # Auto-create missing folders if task had no folder
         self._create_missing_documents_folders()
         return result
 
     def unlink(self):
-        """Soft-delete folder: unlink task but keep folder (FR-DOC-05)."""
-        # Save folder IDs before deletion
         folder_ids = [task.documents_folder_id.id for task in self if task.documents_folder_id]
         result = super().unlink()
-        # Folders are preserved — do not cascade delete
         return result
 
-    def _get_parent_documents_folder(self):
-        """Find parent folder in hierarchy."""
-        self.ensure_one()
-        if self.parent_id and self.parent_id.documents_folder_id:
-            return self.parent_id.documents_folder_id
-        if self.project_id and self.project_id.documents_folder_id:
-            return self.project_id.documents_folder_id
-        return self.env["documents.document"]
-
     def _prepare_folder_values(self):
-        """Prepare folder creation values."""
+        """Prepare workspace creation values — flat workspace, no folder hierarchy."""
         self.ensure_one()
-        parent_folder = self._get_parent_documents_folder()
-        vals = {
-            "name": self.name,
-            "type": "folder",
-            "company_id": self.company_id.id or False,
+        workspace_name = (
+            self.project_id.name if self.project_id else self.name
+        )
+        return {
+            "name": workspace_name,
+            "company_id": self.company_id.id or self.env.company.id,
         }
-        if parent_folder:
-            vals["folder_id"] = parent_folder.id
-        return vals
 
     def _create_missing_documents_folders(self):
-        """Auto-create document folder for task/subtask if not exists (FR-DOC-02, FR-DOC-03).
-
-        Uses a savepoint per task so a folder-creation failure does not roll back
-        the surrounding transaction (e.g. the task record itself).
-        Hierarchy: Project folder → Task folder → Subtask folder.
-        """
+        """Auto-create document workspace for task if not exists."""
+        if self.env.context.get('install_mode'):
+            return
+        if not self.env['ir.module.module'].sudo().search_count([
+                ('name', '=', 'enhanced_document_management'),
+                ('state', '=', 'installed')
+            ]):
+            return
         for task in self.filtered(lambda t: not t.documents_folder_id):
             try:
                 with self.env.cr.savepoint():
-                    folder_vals = task._prepare_folder_values()
-                    if folder_vals:
-                        folder = self.env["documents.document"].create(folder_vals)
-                        task.write({"documents_folder_id": folder.id})
+                    workspace_name = (
+                        task.project_id.name if task.project_id else task.name
+                    )
+                    company_id = task.company_id.id or self.env.company.id
+                    # Reuse existing workspace with same name if it exists
+                    existing = self.env["document.workspace"].sudo().search([
+                        ("name", "=", workspace_name),
+                        ("company_id", "=", company_id),
+                    ], limit=1)
+                    if existing:
+                        task.write({"documents_folder_id": existing.id})
+                    else:
+                        workspace = self.env["document.workspace"].sudo().create({
+                            "name": workspace_name,
+                            "company_id": company_id,
+                        })
+                        task.write({"documents_folder_id": workspace.id})
             except Exception:
-                # Best-effort: if Documents module is not ready, skip silently
                 pass
 
     def action_check_in(self):
@@ -335,11 +321,13 @@ class ProjectTask(models.Model):
         self.ensure_one()
         if not self.documents_folder_id:
             raise UserError("No documents folder is linked to this task yet.")
-        action = self.env["ir.actions.actions"]._for_xml_id("documents.document_action")
-        action["domain"] = [("id", "child_of", self.documents_folder_id.id)]
+        action = self.env["ir.actions.actions"]._for_xml_id(
+            "enhanced_document_management.document_file_action"
+        )
+        action["domain"] = [("workspace_id", "=", self.documents_folder_id.id)]
         action["context"] = {
-            "default_folder_id": self.documents_folder_id.id,
-            "searchpanel_default_folder_id": self.documents_folder_id.id,
+            "default_workspace_id": self.documents_folder_id.id,
+            "searchpanel_default_workspace_id": self.documents_folder_id.id,
         }
         return action
 
@@ -347,10 +335,47 @@ class ProjectTask(models.Model):
         self.ensure_one()
         if not self.documents_folder_id:
             raise UserError("No documents folder is linked to this task yet.")
-        action = self.env["ir.actions.actions"]._for_xml_id("documents.document_action")
-        action["domain"] = [("id", "child_of", self.documents_folder_id.id)]
+        action = self.env["ir.actions.actions"]._for_xml_id(
+            "enhanced_document_management.document_file_action"
+        )
+        action["domain"] = [("workspace_id", "=", self.documents_folder_id.id)]
         action["context"] = {
-            "default_folder_id": self.documents_folder_id.id,
-            "searchpanel_default_folder_id": self.documents_folder_id.id,
+            "default_workspace_id": self.documents_folder_id.id,
+            "searchpanel_default_workspace_id": self.documents_folder_id.id,
         }
         return action
+
+    def action_upload_hr_document(self):
+        self.ensure_one()
+        # Auto-create workspace if missing
+        if not self.documents_folder_id:
+            self._create_missing_documents_folders()
+            self.invalidate_recordset(['documents_folder_id'])
+        target_folder = self.documents_folder_id
+        if not target_folder and self.project_id:
+            # Try to find workspace by project name directly
+            target_folder = self.env["document.workspace"].sudo().search([
+                ("name", "=", self.project_id.name),
+                ("company_id", "=", (self.company_id.id or self.env.company.id)),
+            ], limit=1)
+        if not target_folder:
+            raise UserError(
+                "No documents workspace could be found or created for this task. "
+                "Please contact your administrator."
+            )
+        form_view = self.env.ref(
+            'enhanced_document_management.document_file_view_form'
+        )
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Upload HR Document",
+            "res_model": "document.file",
+            "view_mode": "form",
+            "views": [(form_view.id, "form")],
+            "target": "new",
+            "context": {
+                "default_workspace_id": target_folder.id,
+                "default_res_model": "project.task",
+                "default_res_id": self.id,
+            },
+        }

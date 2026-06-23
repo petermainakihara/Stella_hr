@@ -1,0 +1,2 @@
+- For server-side group checks in models, use `self.env.user.has_group("module.group_xml_id")`.
+- Avoid `user_has_groups` on recordsets unless you confirm it exists for the base model in the target Odoo version.

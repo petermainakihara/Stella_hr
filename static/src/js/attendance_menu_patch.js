@@ -1,6 +1,7 @@
 /** @odoo-module */
 
 import { ActivityMenu } from "@hr_attendance/components/attendance_menu/attendance_menu";
+import { rpc } from "@web/core/network/rpc";
 import { patch } from "@web/core/utils/patch";
 
 patch(ActivityMenu.prototype, {
@@ -26,7 +27,7 @@ patch(ActivityMenu.prototype, {
                 return;
             }
 
-            await super.signInOut(...arguments);
+            await rpc("/hr_attendance/systray_check_in_out", {});
             window.location.reload();
         } finally {
             this._attendanceInProgress = false;

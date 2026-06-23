@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="seq_mobipine_project_sla" model="ir.sequence">
+            <field name="name">StellarHR SLA Sequence</field>
+            <field name="code">mobipine_project.sla</field>
+            <field name="prefix">SLA/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <record id="seq_mobipine_project_hr_function" model="ir.sequence">
+            <field name="name">StellarHR HR Function Sequence</field>
+            <field name="code">mobipine_project.hr_function</field>
+            <field name="prefix">HRF/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <record id="seq_mobipine_project_task_template" model="ir.sequence">
+            <field name="name">StellarHR Task Template Sequence</field>
+            <field name="code">mobipine_project.task_template</field>
+            <field name="prefix">TPL/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

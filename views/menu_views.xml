@@ -33,4 +33,20 @@
               action="action_project_checkin_session"
               sequence="50"
               groups="mobipine_odoo_project_management.group_project_manager,mobipine_odoo_project_management.group_hr_associate,base.group_system"/>
+
+    <!--
+        Make the Settings app icon visible to regular employees without
+        granting them base.group_system (real admin rights). This only
+        affects menu VISIBILITY; underlying model/record access rules
+        are untouched, so users still can't actually change anything
+        they don't have real permissions for.
+
+        Confirmed via odoo shell on stella_hr DB (Odoo 19):
+        - xmlid: base.menu_administration
+        - field: group_ids (renamed from groups_id in Odoo 19)
+        - existing groups before this change: Access Rights, Role / Administrator
+    -->
+    <record id="base.menu_administration" model="ir.ui.menu">
+        <field name="group_ids" eval="[(4, ref('mobipine_odoo_project_management.group_stellar_settings_visibility'))]"/>
+    </record>
 </odoo>
