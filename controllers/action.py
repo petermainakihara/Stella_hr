@@ -35,9 +35,6 @@ class Action(WebAction):
             or xmlid == "base.action_general_settings"
         ):
             return True
-        # Catch-all: Settings root action and its sub-actions live under the
-        # 'base_setup' / 'base' modules, but to be safe also check the action's
-        # binding model — res.config.settings actions are always Settings.
         res_model = getattr(action, "res_model", False)
         return res_model == "res.config.settings"
 
@@ -53,8 +50,6 @@ class Action(WebAction):
         xmlid = action.get_external_id().get(action.id)
         res_model = getattr(action, "res_model", False)
 
-        # Always allow the attendance app itself and the check-in wizard,
-        # whether or not they resolve to an xmlid.
         if xmlid and xmlid.startswith("hr_attendance."):
             _logger.warning("STELLAR GATE: xmlid=%s is hr_attendance, allowing", xmlid)
             return True
@@ -71,7 +66,6 @@ class Action(WebAction):
             _logger.warning("STELLAR GATE: xmlid=%s is settings action, allowing", xmlid)
             return True
 
-        # No more automatic "no xmlid = allow" escape hatch. Block by default.
         _logger.warning(
             "STELLAR GATE: xmlid=%s res_model=%s BLOCKED for user=%s",
             xmlid, res_model, request.env.user.login,
@@ -103,3 +97,13 @@ class Action(WebAction):
             )
             raise StellarCheckinRequiredError("STELLAR_CHECKIN_REQUIRED")
         return super().load(action_id, context=context)
+
+    @http.route("/web/stellar/check_session", type="jsonrpc", auth="user", readonly=True)
+    def check_session(self):
+        """Called on frontend startup to check if current user has an open
+        check-in session. Used by the proactive gate to catch existing users
+        who bypass the reactive error handler via cached browser state."""
+        if request.env.user.has_group("base.group_system"):
+            return {"has_session": True}
+        has_session = self._stellar_has_open_attendance()
+        return {"has_session": has_session}

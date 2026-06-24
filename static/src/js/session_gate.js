@@ -2,6 +2,7 @@
 
 import { registry } from "@web/core/registry";
 import { _t } from "@web/core/l10n/translation";
+import { rpc } from "@web/core/network/rpc";
 
 function isStellarCheckinError(error) {
     const data = error?.data || error?.message?.data;
@@ -42,7 +43,6 @@ function buildCheckinModal(env) {
         if (document.body.contains(overlay)) {
             document.body.removeChild(overlay);
         }
-
         await env.services.action.doAction(
             "mobipine_odoo_project_management.action_attendance_checkin_wizard"
         );
@@ -61,7 +61,6 @@ function buildCheckinModal(env) {
     };
 
     actions.appendChild(dismissBtn);
-
     modal.appendChild(actions);
     overlay.appendChild(modal);
 
@@ -69,23 +68,18 @@ function buildCheckinModal(env) {
 }
 
 export const stellarSessionGateService = {
-    start(env) {
+    dependencies: ["action"],
+    async start(env) {
         let modalOpen = false;
 
         const showCheckinModal = () => {
-            if (modalOpen) {
-                return;
-            }
-
+            if (modalOpen) return;
             modalOpen = true;
 
             const overlay = buildCheckinModal(env);
-
             document.body.appendChild(overlay);
 
-            const cleanup = () => {
-                modalOpen = false;
-            };
+            const cleanup = () => { modalOpen = false; };
 
             overlay.addEventListener("click", (ev) => {
                 if (ev.target === overlay) {
@@ -103,10 +97,27 @@ export const stellarSessionGateService = {
                 }
             });
 
-            observer.observe(document.body, {
-                childList: true,
-            });
+            observer.observe(document.body, { childList: true });
         };
+
+        // Proactive startup check — catches existing users with cached sessions
+        try {
+            const result = await rpc("/web/stellar/check_session", {});
+            if (result && result.has_session === false) {
+                // Wait for the DOM to be ready before showing modal
+                const waitForBody = () => {
+                    if (document.body) {
+                        showCheckinModal();
+                    } else {
+                        setTimeout(waitForBody, 100);
+                    }
+                };
+                waitForBody();
+            }
+        } catch (e) {
+            // If the check fails, fail silently — don't block the UI
+            console.warn("Stellar session gate startup check failed:", e);
+        }
 
         return {
             showCheckinModal,
