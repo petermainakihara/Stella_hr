@@ -5,25 +5,29 @@
             <field name="name">StellarHR</field>
             <field name="sequence">65</field>
         </record>
-
         <record id="privilege_stellar_hr" model="res.groups.privilege">
             <field name="name">StellarHR</field>
             <field name="category_id" ref="mobipine_odoo_project_management.module_category_stellar_hr"/>
             <field name="sequence">65</field>
         </record>
-
         <record id="group_project_manager" model="res.groups">
             <field name="name">StellarHR Project Manager</field>
             <field name="privilege_id" ref="mobipine_odoo_project_management.privilege_stellar_hr"/>
-            <field name="implied_ids" eval="[(4, ref('project.group_project_user')), (4, ref('hr_attendance.group_hr_attendance_user'))]"/>
+            <field name="implied_ids" eval="[
+                (4, ref('project.group_project_user')),
+                (4, ref('hr_attendance.group_hr_attendance_user')),
+                (4, ref('enhanced_document_management.view_own_document')),
+            ]"/>
         </record>
-
         <record id="group_hr_associate" model="res.groups">
             <field name="name">StellarHR HR Associate</field>
             <field name="privilege_id" ref="mobipine_odoo_project_management.privilege_stellar_hr"/>
-            <field name="implied_ids" eval="[(4, ref('project.group_project_user')), (4, ref('hr_attendance.group_hr_attendance_user'))]"/>
+            <field name="implied_ids" eval="[
+                (4, ref('project.group_project_user')),
+                (4, ref('hr_attendance.group_hr_attendance_user')),
+                (4, ref('enhanced_document_management.view_own_document')),
+            ]"/>
         </record>
-
         <record id="group_stellar_settings_visibility" model="res.groups">
             <field name="name">StellarHR Settings Visibility</field>
             <field name="privilege_id" ref="mobipine_odoo_project_management.privilege_stellar_hr"/>
