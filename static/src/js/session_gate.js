@@ -103,7 +103,7 @@ export const stellarSessionGateService = {
         // Proactive startup check — catches existing users with cached sessions
         try {
             const result = await rpc("/web/stellar/check_session", {});
-            if (result && result.has_session === false) {
+            if (!result || result.has_session === false) {
                 // Wait for the DOM to be ready before showing modal
                 const waitForBody = () => {
                     if (document.body) {
@@ -115,8 +115,16 @@ export const stellarSessionGateService = {
                 waitForBody();
             }
         } catch (e) {
-            // If the check fails, fail silently — don't block the UI
+            // Fail closed — if check fails, show the modal to be safe
             console.warn("Stellar session gate startup check failed:", e);
+            const waitForBody = () => {
+                if (document.body) {
+                    showCheckinModal();
+                } else {
+                    setTimeout(waitForBody, 100);
+                }
+            };
+            waitForBody();
         }
 
         return {

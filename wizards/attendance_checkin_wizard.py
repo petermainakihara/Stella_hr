@@ -8,7 +8,7 @@ class AttendanceCheckinWizard(models.TransientModel):
     _name = "mobipine_project.attendance_checkin_wizard"
     _description = "Attendance Check-in Wizard"
 
-    RADIUS_BUFFER_KM = 2.0
+    RADIUS_BUFFER_KM = 0.0
 
     employee_id = fields.Many2one("hr.employee", required=True, readonly=True)
     project_id = fields.Many2one("project.project", readonly=True)

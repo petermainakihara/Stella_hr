@@ -25,7 +25,17 @@ class Action(WebAction):
 
     def _stellar_has_open_attendance(self):
         employee = self._stellar_get_employee()
-        return bool(employee and employee._stellar_has_open_checkin_session())
+        if not employee:
+            return False
+        return bool(
+            request.env["mobipine_project.checkin_session"].search(
+                [
+                    ("employee_id", "=", employee.id),
+                    ("state", "=", "open"),
+                ],
+                limit=1,
+            )
+        )
 
     def _stellar_is_settings_action(self, action, xmlid):
         if xmlid and (
@@ -103,7 +113,24 @@ class Action(WebAction):
         """Called on frontend startup to check if current user has an open
         check-in session. Used by the proactive gate to catch existing users
         who bypass the reactive error handler via cached browser state."""
-        if request.env.user.has_group("base.group_system"):
-            return {"has_session": True}
-        has_session = self._stellar_has_open_attendance()
-        return {"has_session": has_session}
+        try:
+            if request.env.user.has_group("base.group_system"):
+                return {"has_session": True}
+            employee = self._stellar_get_employee()
+            if not employee:
+                # No employee record linked — must check in first
+                return {"has_session": False}
+            has_session = bool(
+                request.env["mobipine_project.checkin_session"].search(
+                    [
+                        ("employee_id", "=", employee.id),
+                        ("state", "=", "open"),
+                    ],
+                    limit=1,
+                )
+            )
+            return {"has_session": has_session}
+        except Exception as e:
+            _logger.error("STELLAR check_session error: %s", e)
+            # Fail closed — if we can't check, block access
+            return {"has_session": False}

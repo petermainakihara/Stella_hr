@@ -1,6 +1,5 @@
 from odoo import fields, models
 
-
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
@@ -20,6 +19,6 @@ class ResPartner(models.Model):
     )
     attendance_radius_km = fields.Float(
         string="Attendance Radius (km)",
-        default=30.0,
+        default=0.3,
         help="Allowed distance in kilometers for on-premise check-in.",
     )

@@ -55,4 +55,6 @@
     "installable": True,
     "application": False,
     "auto_install": False,
+    "post_init_hook": "mobipine_odoo_project_management.hooks.post_init_hook",
+    "post_migrate": "mobipine_odoo_project_management.hooks.post_migrate_hook",
 }
